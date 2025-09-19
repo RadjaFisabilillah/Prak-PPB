@@ -1,12 +1,26 @@
 import { supabase } from "../config/supabaseClient.js";
 
 export const MedicationModel = {
-  async getAll() {
-    const { data, error } = await supabase
+  async getAll(name, page, limit) {
+    let query = supabase
       .from("medications")
       .select(
         "id, sku, name, description, price, quantity, category_id, supplier_id"
       );
+
+    // Searching by name (case-insensitive)
+    if (name) {
+      query = query.ilike("name", `%${name}%`);
+    }
+
+    // Pagination
+    if (page && limit) {
+      const from = (page - 1) * limit;
+      const to = from + limit - 1;
+      query = query.range(from, to);
+    }
+
+    const { data, error } = await query;
     if (error) throw error;
     return data;
   },
@@ -16,10 +30,10 @@ export const MedicationModel = {
       .from("medications")
       .select(
         `
-id, sku, name, description, price, quantity,
-categories ( id, name ),
-suppliers ( id, name, email, phone ),
-`
+        id, sku, name, description, price, quantity,
+        categories ( id, name ),
+        suppliers ( id, name, email, phone )
+        `
       )
       .eq("id", id)
       .single();
@@ -28,26 +42,35 @@ suppliers ( id, name, email, phone ),
   },
 
   async create(payload) {
-    // Di sini, kita akan menerima payload apa adanya,
-    // termasuk nilai negatif untuk price dan quantity jika ada.
+    // Validation for price and quantity
+    if (payload.price < 0 || payload.quantity < 0) {
+      throw new Error("Price and quantity must be non-negative.");
+    }
     const { data, error } = await supabase
       .from("medications")
       .insert([payload])
-      .select();
+      .select()
+      .single();
     if (error) throw error;
-    return data[0];
+    return data;
   },
 
   async update(id, payload) {
-    // Sama seperti create, kita menerima payload apa adanya.
-    // Tidak ada validasi yang mencegah nilai negatif.
+    // Validation for price and quantity
+    if (
+      (payload.price !== undefined && payload.price < 0) ||
+      (payload.quantity !== undefined && payload.quantity < 0)
+    ) {
+      throw new Error("Price and quantity must be non-negative.");
+    }
     const { data, error } = await supabase
       .from("medications")
       .update(payload)
       .eq("id", id)
-      .select();
+      .select()
+      .single();
     if (error) throw error;
-    return data[0];
+    return data;
   },
 
   async remove(id) {

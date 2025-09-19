@@ -1,22 +1,26 @@
 import { MedicationModel } from "../models/medicationModel.js";
+
 export const MedicationController = {
   async getAll(req, res) {
     try {
-      const meds = await MedicationModel.getAll();
+      // Get query parameters for search and pagination
+      const { name, page, limit } = req.query;
+      const meds = await MedicationModel.getAll(name, page, limit);
       res.json(meds);
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
   },
+
   async getById(req, res) {
     try {
       const med = await MedicationModel.getById(req.params.id);
-
       res.json(med);
     } catch (err) {
       res.status(404).json({ error: err.message });
     }
   },
+
   async create(req, res) {
     try {
       const med = await MedicationModel.create(req.body);
@@ -25,6 +29,7 @@ export const MedicationController = {
       res.status(400).json({ error: err.message });
     }
   },
+
   async update(req, res) {
     try {
       const med = await MedicationModel.update(req.params.id, req.body);
@@ -33,6 +38,7 @@ export const MedicationController = {
       res.status(400).json({ error: err.message });
     }
   },
+
   async remove(req, res) {
     try {
       await MedicationModel.remove(req.params.id);
